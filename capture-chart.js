@@ -1,13 +1,14 @@
-const puppeteer = process.env.AWS_LAMBDA_FUNCTION_VERSION
-  ? require("puppeteer-core")
-  : require("puppeteer");
+const puppeteer = require("puppeteer");
 const express = require("express");
 const app = express();
 const path = require("path");
 const fs = require("fs-extra");
+
 const chrome = process.env.AWS_LAMBDA_FUNCTION_VERSION
   ? require("chrome-aws-lambda")
   : null;
+
+const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || null;
 
 // Servir los directorios img-impreg de forma pública
 app.use("/img-impreg", express.static(path.join(__dirname, "img-impreg")));
@@ -27,18 +28,11 @@ app.get("/", async (req, res) => {
   let browser = null;
 
   try {
-    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-      browser = await puppeteer.launch({
-        args: chrome.args,
-        executablePath: await chrome.executablePath,
-        headless: chrome.headless,
-      });
-    } else {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    }
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: PUPPETEER_EXECUTABLE_PATH,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     const page = await browser.newPage();
 
@@ -48,7 +42,7 @@ app.get("/", async (req, res) => {
     });
 
     console.log(`Navigating to URL for case ID: ${id}`);
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 }); // Aumentado el tiempo de espera a 60 segundos
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
 
     // Esperar a que el gráfico y la tabla estén presentes en el DOM
     await page.waitForSelector("#chart");
