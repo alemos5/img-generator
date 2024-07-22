@@ -1,14 +1,17 @@
-# Usa una imagen base de Node.js
-FROM node:20-alpine3.17
+# Usa una imagen base de Node.js basada en Debian
+FROM node:20-bullseye-slim
 
 # Instala las dependencias necesarias, incluyendo Chromium
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+    fonts-liberation \
+    libnss3 \
+    xdg-utils \
+    wget \
+    curl \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Establece el directorio de trabajo
 WORKDIR /app
@@ -23,7 +26,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Establece variables de entorno para Puppeteer
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Exponer el puerto en el que tu aplicación se ejecutará
 EXPOSE 7700

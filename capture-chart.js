@@ -4,10 +4,6 @@ const app = express();
 const path = require("path");
 const fs = require("fs-extra");
 
-const chrome = process.env.AWS_LAMBDA_FUNCTION_VERSION
-  ? require("chrome-aws-lambda")
-  : null;
-
 const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || null;
 
 // Servir los directorios img-impreg de forma pública
@@ -31,10 +27,23 @@ app.get("/", async (req, res) => {
     browser = await puppeteer.launch({
       headless: true,
       executablePath: PUPPETEER_EXECUTABLE_PATH,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--ignore-certificate-errors",
+        "--disable-software-rasterizer",
+      ],
     });
 
     const page = await browser.newPage();
+
+    page.on("console", (consoleObj) => console.log(consoleObj.text()));
+    page.on("error", (err) => console.error(`Error in page: ${err.message}`));
+    page.on("pageerror", (pageErr) =>
+      console.error(`Page error: ${pageErr.message}`)
+    );
 
     await page.setViewport({
       width: parseInt(width, 10),
@@ -42,17 +51,15 @@ app.get("/", async (req, res) => {
     });
 
     console.log(`Navigating to URL for case ID: ${id}`);
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 15000 });
 
-    // Esperar a que el gráfico y la tabla estén presentes en el DOM
-    await page.waitForSelector("#chart");
-    await page.waitForSelector("#miTabla");
+    console.log("Waiting for #chart and #miTabla selectors");
+    await page.waitForSelector("#chart", { timeout: 5000 });
+    await page.waitForSelector("#miTabla", { timeout: 5000 });
 
-    // Seleccionar el gráfico y tomar una captura de pantalla solo de ese elemento
     const screenshotPathChart = path.join(__dirname, "img-impreg", `${id}.png`);
     const chartElement = await page.$("#chart");
 
-    // Crear el directorio si no existe
     fs.mkdirSync(path.dirname(screenshotPathChart), { recursive: true });
 
     if (chartElement) {
@@ -63,7 +70,6 @@ app.get("/", async (req, res) => {
       return res.status(500).send("Chart element not found");
     }
 
-    // Seleccionar la tabla y tomar una captura de pantalla solo de ese elemento
     const screenshotPathTable = path.join(
       __dirname,
       "img-impreg",
