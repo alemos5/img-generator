@@ -7,14 +7,11 @@ WORKDIR /app
 # Copia el package.json y el package-lock.json para instalar las dependencias
 COPY package*.json ./
 
-# Instala las dependencias necesarias
-RUN npm install
+# Instala las dependencias necesarias con la opción --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Copia el resto de la aplicación
 COPY . .
-
-# Instala Puppeteer
-RUN npm install puppeteer
 
 # Exponer el puerto en el que tu aplicación se ejecutará
 EXPOSE 7700
