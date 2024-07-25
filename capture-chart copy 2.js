@@ -1,13 +1,11 @@
-const puppeteer = process.env.AWS_LAMBDA_FUNCTION_VERSION
-  ? require("puppeteer-core")
-  : require("puppeteer");
+const puppeteer = require("puppeteer");
 const express = require("express");
 const app = express();
 const path = require("path");
 const fs = require("fs-extra");
-const chrome = process.env.AWS_LAMBDA_FUNCTION_VERSION
-  ? require("chrome-aws-lambda")
-  : null;
+const ejs = require("ejs");
+
+const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || null;
 
 // Servir los directorios img-impreg de forma pública
 app.use("/img-impreg", express.static(path.join(__dirname, "img-impreg")));
@@ -22,24 +20,31 @@ app.get("/", async (req, res) => {
   }
 
   console.log(`Processing case ID: ${id}`);
+  console.log(`Received URL: ${url}`);
 
   let browser = null;
 
   try {
-    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-      browser = await puppeteer.launch({
-        args: chrome.args,
-        executablePath: await chrome.executablePath,
-        headless: chrome.headless,
-      });
-    } else {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    }
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: PUPPETEER_EXECUTABLE_PATH,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--ignore-certificate-errors",
+        "--disable-software-rasterizer",
+      ],
+    });
 
     const page = await browser.newPage();
+
+    page.on("console", (consoleObj) => console.log(consoleObj.text()));
+    page.on("error", (err) => console.error(`Error in page: ${err.message}`));
+    page.on("pageerror", (pageErr) =>
+      console.error(`Page error: ${pageErr.message}`)
+    );
 
     await page.setViewport({
       width: parseInt(width, 10),
@@ -47,29 +52,72 @@ app.get("/", async (req, res) => {
     });
 
     console.log(`Navigating to URL for case ID: ${id}`);
-    await page.goto(url, { waitUntil: "networkidle2" });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 15000 });
 
-    // Esperar a que el gráfico esté presente en el DOM
-    await page.waitForSelector("#chart");
+    console.log("Waiting for #chart and #miTabla selectors");
+    await page.waitForSelector("#chart", { timeout: 5000 });
+    await page.waitForSelector("#miTabla", { timeout: 5000 });
 
-    // Seleccionar el gráfico y tomar una captura de pantalla solo de ese elemento
-    const screenshotPath = path.join(__dirname, "img-impreg", `${id}.png`);
+    const screenshotPathChart = path.join(__dirname, "img-impreg", `${id}.png`);
     const chartElement = await page.$("#chart");
 
-    // Crear el directorio si no existe
-    fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
+    fs.mkdirSync(path.dirname(screenshotPathChart), { recursive: true });
 
     if (chartElement) {
-      await chartElement.screenshot({ path: screenshotPath });
-      console.log(`Chart screenshot saved for case ID: ${id}`);
-
-      res.json({
-        imageUrl: `${req.protocol}://${req.get("host")}/img-impreg/${id}.png`,
-      });
+      await chartElement.screenshot({ path: screenshotPathChart });
+      console.log(`Chart screenshot saved at: ${screenshotPathChart}`);
     } else {
       console.error(`Chart element not found for case ID: ${id}`);
-      res.status(500).send("Chart element not found");
+      return res.status(500).send("Chart element not found");
     }
+
+    const screenshotPathTable = path.join(
+      __dirname,
+      "img-impreg",
+      `${id}_table.png`
+    );
+    const tableElement = await page.$("#miTabla");
+
+    if (tableElement) {
+      await tableElement.screenshot({ path: screenshotPathTable });
+      console.log(`Table screenshot saved at: ${screenshotPathTable}`);
+    } else {
+      console.error(`Table element not found for case ID: ${id}`);
+      return res.status(500).send("Table element not found");
+    }
+
+    // Leer la plantilla HTML y rellenarla con los datos
+    const templatePath = path.join(__dirname, "template.html");
+    const logoPath = path.join(__dirname, "logo_completo_blanco.jpg");
+    const htmlContent = await ejs.renderFile(templatePath, {
+      path,
+      id,
+      ...req.query,
+      logoPath,
+      chartImagePath: screenshotPathChart,
+      tableImagePath: screenshotPathTable,
+    });
+
+    // Guardar el HTML en un archivo temporal
+    const htmlPath = path.join(__dirname, "img-impreg", `${id}.html`);
+    await fs.writeFile(htmlPath, htmlContent);
+
+    // Generar el PDF a partir del HTML
+    const pdfPath = path.join(__dirname, "img-impreg", `${id}.pdf`);
+    await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle2" });
+    await page.pdf({ path: pdfPath, format: "A4" });
+
+    console.log(`PDF saved at: ${pdfPath}`);
+
+    res.json({
+      chartImageUrl: `${req.protocol}://${req.get(
+        "host"
+      )}/img-impreg/${id}.png`,
+      tableImageUrl: `${req.protocol}://${req.get(
+        "host"
+      )}/img-impreg/${id}_table.png`,
+      pdfUrl: `${req.protocol}://${req.get("host")}/img-impreg/${id}.pdf`,
+    });
   } catch (error) {
     console.error(
       `Error capturing screenshot for case ID: ${id}`,
@@ -85,6 +133,6 @@ app.get("/", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+app.listen(7700, () => {
+  console.log("Server is running on port 7700");
 });

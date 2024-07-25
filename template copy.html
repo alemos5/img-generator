@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="csrf-token" content="">
+    <link rel="icon" type="image/png" sizes="16x16" href="./images/favicon.png">
+    <title>Homeopatía</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        .container {
+            max-width: 100%;
+            padding: 15px 15px 0 15px;
+        }
+        h2 {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        hr {
+            margin: 5px 0;
+        }
+        .image-center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
+        .full-width {
+            width: 100%;
+        }
+        .bottom-right {
+            width: 200px;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+            text-align: left;
+            font-size: 12px;
+        }
+        .relative-container {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <table width="100%">
+        <tr>
+            <td colspan="2">
+                <img src="file://<%= logoPath %>" height="60" />
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td style="vertical-align: top; width: 33%;">
+                <h2>Data</h2>
+                <hr>
+                <table>
+                    <tr>
+                        <td><b>Persona</b></td>
+                        <td><%= c_nombre %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Fecha de Nacimiento</b></td>
+                        <td><%= c_fecha_d %>.<%= c_fecha_m %>.<%= c_fecha_a %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Simetria</b></td>
+                        <td><%= simetria %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Madre</b></td>
+                        <td><%= m_nombre %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Fecha de Nacimiento</b></td>
+                        <td><%= m_fecha_d %>.<%= m_fecha_m %>.<%= m_fecha_a %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Simetria Madre</b></td>
+                        <td><%= simetria_materna %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Padre</b></td>
+                        <td><%= p_nombre %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Fecha de Nacimiento</b></td>
+                        <td><%= p_fecha_d %>.<%= p_fecha_m %>.<%= p_fecha_a %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Simetria Padre</b></td>
+                        <td><%= simetria_paterno %></td>
+                    </tr>
+                </table>
+            </td>
+            <td style="vertical-align: top; text-align: center; width: 33%;">
+                <h2>Secuencia</h2>
+                <hr>
+                <table>
+                    <tr>
+                        <td style="text-align: center;">8</td>
+                        <td style="text-align: center;">3</td>
+                        <td style="text-align: center;">2</td>
+                        <td style="text-align: center;">7</td>
+                        <td style="text-align: center;">1</td>
+                        <td style="text-align: center;">9</td>
+                        <td style="text-align: center;">6</td>
+                        <td style="text-align: center;">4</td>
+                        <td style="text-align: center;">5</td>
+                    </tr>
+                </table>
+                <img src="file://<%= tableImagePath %>" alt="Tabla" class="bottom-right">
+            </td>
+            <td style="vertical-align: top; width: 33%;">
+                <h2>Información</h2>
+                <hr>
+                <table>
+                    <tr>
+                        <td><b>Persona (vocales)</b></td>
+                        <td><%= c_nombre %>: <%= v_c_name %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Abuelas</b></td>
+                        <td><%= abuela_materna_nombre %>: <%= v_abuela_materna %></td>
+                        <td><%= abuela_paterno_nombre %>: <%= v_abuela_paterna %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Abuelos</b></td>
+                        <td><%= abuelo_materno_nombre %>: <%= v_abuelo_materno %></td>
+                        <td><%= abuelo_paterno_nombre %>: <%= v_abuelo_paterno %></td>
+                    </tr>
+                    <tr>
+                        <td><b>Apellidos</b></td>
+                        <td><%= c_apellido_paterno %>: <%= v_c_apellido_paterno %></td>
+                        <td><%= c_apellido_materno %>: <%= v_c_apellido_materno %></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="relative-container">
+        <div class="image-section">
+            <img src="file://<%= chartImagePath %>" alt="Gráfico" class="image-center full-width">
+        </div>
+    </div>
+</div>
+</body>
+</html>
